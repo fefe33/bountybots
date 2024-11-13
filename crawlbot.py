@@ -41,14 +41,16 @@ class crawler:
         #iterate through the domains listed as 'in scope', checking any of them show up in the url. if not, return false    
         in_scope = False
         #check in scope kws, domains, urls
-        for i in self.scope:
-            if i in url: 
-                in_scope = True
-                break
+        if len(self.scope!=0):
+            for i in self.scope:
+                if i in url: 
+                    in_scope = True
+                    break
         #check out of scope kws, domains, urls
-        for i in self.noscope:
-            if i in url:
-                in_scope = False
+        if len(self.noscope)>0:
+            for i in self.noscope:
+                if i in url:
+                    in_scope = False
 
         
         #if the url is in scope, append it to endpoints
@@ -62,9 +64,9 @@ class crawler:
         #if the current iteration is greater than the number of urls in the self.endpoints array
         if self.iter >= len(self.endpoints):
             #print the results and quit
-            self.driver.quit()
+            return
                 
-        print('endpoint: ',self.iter)
+        print('endpoint: ',self.iter, self.endpoints[self.iter])
         #go to the provided url using change_url method
         try:
             if self.change_url(self.endpoints[self.iter]):
@@ -82,16 +84,15 @@ class crawler:
                 #if the url fails to open. increment self.iter and do the recursive thing
                 print('could not open URL')
                 self.iter += 1
-                self.run()
+                self.change_url[self.iter]
         except:
+            print('an error has occurred loading this endpoint: ', self.endpoints[self.iter])
             #on error return gracefully quit
             self.driver.quit()
-            return            
         #get the forms
         forms = self.driver.find_elements(By.TAG_NAME, 'form')
         #if there are any, analyze them
         if len(forms) > 0:
-            #exit with error for now
             print('more than one form detected on page.\n')
             #counter for the forms
             f_count = 0
@@ -163,14 +164,20 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-b','--browser', type=str, nargs=1, choices=['chrome', 'firefox'], required=True, help='the browser to use (chrome or firefox)')
 parser.add_argument('-u', '--url', type=str, nargs=1, required=True, help='the initial url for the bot to scan')
-parser.add_argument('-is','--inscope', nargs = '*', required=True, help='domains, keywords, and urls that the bot should consider in scope')
-parser.add_argument('-ns', '--noscope', nargs='*', type=str, required=True, help='domains,keywords, and urls that the bot should consider out of scope.')
+parser.add_argument('-is','--inscope', nargs = '*', default=None, help='domains, keywords, and urls that the bot should consider in scope')
+parser.add_argument('-ns', '--noscope', nargs='*', type=str, default=None, help='domains,keywords, and urls that the bot should consider out of scope.')
 parser.add_argument('-o', '--out', nargs=1, type=str,help='the name of the output file or fifo to write the output to (as json)')
 args = parser.parse_args()
 browser = args.browser[0]
 url = args.url[0] 
-inscope = args.inscope
-noscope = args.noscope
+if args.inscope!=None:
+    inscope = args.inscope
+else:
+    inscope = []
+if args.noscope != None:
+    noscope = args.noscope
+else:
+    noscope = []
 print('in scope: ', inscope,'\nout of scope: ', noscope)
 #init with a random site
 crawlbot = crawler(browser,url, inscope,noscope)
